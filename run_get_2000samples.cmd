@@ -1,0 +1,1 @@
+python .\src\get_data_sample.py -m snap_mode -l 2000 -b 1000
