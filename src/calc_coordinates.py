@@ -18,6 +18,7 @@ time_shift = 0
 time_step = 20
 option_data_persist = 0
 title_info_str = ''
+title_str = ''
 
 
 def calculate_intercept(pc_xy, box):
@@ -36,7 +37,7 @@ def calculate_intercept(pc_xy, box):
     if topleft_y < botright_y:
         tmp = topleft_y
         topleft_y = botright_y
-        botright_y = tmp    
+        botright_y = tmp
     distance = 0
 
     # select points in box range
@@ -104,24 +105,26 @@ def on_mouse_motion(event):
 
 def on_press(event):
     global select_boxes
-    if event.button==1:   #鼠标左键点击
-        #if select_boxes.__len__() == 0:
-        select_boxes.append(SelectBox([event.xdata,event.ydata]))
-        print("add box start position:" ,event.button,event.xdata, event.ydata)
+    global fitline
+    if event.button == 1:  # 鼠标左键点击
+        # if select_boxes.__len__() == 0:
+        select_boxes.append(SelectBox([event.xdata, event.ydata]))
+        print("add box start position:", event.button, event.xdata, event.ydata)
 
-
-
-
-    elif event.button==3:   
-        #鼠标右键点击
-        plt.gca().figure.canvas.draw()
+    elif event.button == 3:
+        # 鼠标右键点击
         if SelectBox.box_count > 0:
             select_boxes.pop()
             print("clear positions")
+        cnt = len(fitline)
+        for idx in range(0, cnt):
+            fitline[idx][0].remove()
+        plt.gca().figure.canvas.draw()
 
 
 def on_release(event):
     #global BOX
+    global title_str
     global PointCloud_xy
     if event.button == 1:  # 鼠标左键释放
         if select_boxes[SelectBox.box_count-1].finished == 0:
@@ -135,10 +138,12 @@ def on_release(event):
             for box in select_boxes:
                 S_intercept = calculate_intercept(
                     PointCloud_xy, [[box.x1, box.y1], [box.x2, box.y2]])
-                result_str = "Intercept = " + str(S_intercept)
-                plt.title(result_str)
+                title_str += "  Intercept = " + str(S_intercept)
+                plt.title(title_str)
                 plt.gca().figure.canvas.draw()
-
+                if SelectBox.box_count > 0:
+                    select_boxes.pop()
+                    # print('select_box_count='+str(SelectBox.box_count))
                 print(result_str)
 
 
@@ -158,8 +163,8 @@ def on_keypressed(event):
                 time_shift -= time_step
 
         if event.key == 'd':
-            #switch to next data_line
-            
+            # switch to next data_line
+
             if time_shift + time_step < valid_length:
                 time_shift += time_step
                 print('go to next data line:' + str(time_shift))
@@ -191,7 +196,7 @@ def on_keypressed(event):
             PointCloud_xy = []
         else:
             option_str = "  Data Persist = ON"
-            
+
         cord_calc.calc_step(time_shift)
         plt.cla()
 
@@ -215,11 +220,12 @@ def on_keypressed(event):
 def getFiles(path, suffix):
     return [os.path.join(root, file) for root, dirs, files in os.walk(path) for file in files if file.endswith(suffix)]
 
+
 def getSubdirs(path):
     subdirs = []
-    for root,dirs,files in os.walk(path):
+    for root, dirs, files in os.walk(path):
         for name in dirs:
-            subdirs.append(os.path.join(root,name))
+            subdirs.append(os.path.join(root, name))
     return subdirs
 
 
@@ -286,9 +292,8 @@ class SelectBox:
 
         if self.x1 != self.x2 or self.y1 != self.y2:
             self.index = SelectBox.box_count
-            SelectBox.box_count+=1
-        
-         
+            SelectBox.box_count += 1
+
     def __del__(self):
         if SelectBox.box_count > 0:
             SelectBox.box_count -= 1
@@ -354,8 +359,8 @@ def GetRawTagInfo(rawdata_path):
     time_tags = []
     raw_files = getFiles(rawdata_path, 'csv')
     for csv_file in raw_files:
-        ws=csv.reader(open(csv_file,'r'))
-        row = list(ws)  
+        ws = csv.reader(open(csv_file, 'r'))
+        row = list(ws)
         lines = len(row)
         tags = []
         tags.append(csv_file.__str__())
@@ -432,21 +437,21 @@ def TransformCoordinates(param_file, rawdata_file, time_tag):
 
     # search for time_tag
     index = 0
-    for idx in range(0,len(row)-1):
-        if idx <(len(row)-2) and abs(time_tag - int(row[idx][1])) < (int(row[idx+1][1]) - int(row[idx][1])):
+    for idx in range(0, len(row)-1):
+        if idx < (len(row)-2) and abs(time_tag - int(row[idx][1])) < (int(row[idx+1][1]) - int(row[idx][1])):
             index = idx
-    
+
     if verbose_mode == 1:
-        print('time_tag = ' + str(time_tag))          
-        print('current idx = ' + str(index))    
+        print('time_tag = ' + str(time_tag))
+        print('current idx = ' + str(index))
 
-    #read raw data from csv
-    for col in range(2,row[0].__len__(),2):
-        cam_x = row[index][col]         #get x cam-coordinate of a point
-        cam_y = str((col / 2)-1)    #get y cam-coordinate of a point
-        cam_coordinates.append([cam_x,cam_y])       #add to cam-coordinate list
+    # read raw data from csv
+    for col in range(2, row[0].__len__(), 2):
+        cam_x = row[index][col]  # get x cam-coordinate of a point
+        cam_y = str((col / 2)-1)  # get y cam-coordinate of a point
+        cam_coordinates.append([cam_x, cam_y])  # add to cam-coordinate list
 
-        x = Decimal(cam_x)          #convert string to decimal
+        x = Decimal(cam_x)  # convert string to decimal
         y = Decimal(cam_y)
 
         # convert to world coordinates in polar
@@ -503,7 +508,8 @@ class CalculateThread (Thread):
 
 #PointCloud_xy = GetCoordinates(param_files,rawdata_path,DataIndex)
 
-def CalcSampleCoordinates(param_file,subdir):
+
+def CalcSampleCoordinates(param_file, subdir):
     pcloud = []
     start_tags = []
     end_tags = []
@@ -524,18 +530,19 @@ def CalcSampleCoordinates(param_file,subdir):
 
     for tag in end_tags:
         if tag < tag_end:
-            tag_end = tag    
+            tag_end = tag
 
-    #TODO: search for nearby samples for sufficient data
+    # TODO: search for nearby samples for sufficient data
     #sample_tag = tag_start
 
-    for sample_file in sample_files: 
+    for sample_file in sample_files:
         pcloud.extend(TransformCoordinates(param_file, sample_file, tag_start))
 
     return pcloud
 
+
 class CoordinatesCalculator:
-    
+
     start_tags = []
     end_tags = []
     tag_start = 0
@@ -586,7 +593,8 @@ class CoordinatesCalculator:
         threads = []
         for idx in range(0, len(self.raw_files)):
             thread_name = 'ProcessThread' + str(idx)
-            threads.append(CalculateThread(idx,thread_name, self.param_file,self.raw_files[idx],CoordinatesCalculator.current_tag))
+            threads.append(CalculateThread(idx, thread_name, self.param_file,
+                                           self.raw_files[idx], CoordinatesCalculator.current_tag))
             threads[idx].start()
 
         for th in threads:
@@ -594,20 +602,20 @@ class CoordinatesCalculator:
             PointCloud_xy.extend(th.get_result())
 
     def calc_shift(self, shift):
-        if shift < CoordinatesCalculator.tag_end - CoordinatesCalculator.tag_start :
+        if shift < CoordinatesCalculator.tag_end - CoordinatesCalculator.tag_start:
             threads = []
-            for idx in range(0,len(self.raw_files)):
+            for idx in range(0, len(self.raw_files)):
                 thread_name = 'ProcessThread' + str(idx)
-                threads.append(CalculateThread(idx,thread_name, self.param_file,self.raw_files[idx],CoordinatesCalculator.tag_start+shift))
+                threads.append(CalculateThread(idx, thread_name, self.param_file,
+                                               self.raw_files[idx], CoordinatesCalculator.tag_start+shift))
                 threads[idx].start()
 
-            
             for th in threads:
                 th.join()
                 PointCloud_xy.extend(th.get_result())
 
 
-#main entry
+# main entry
 rawdata_path = os.getcwd() + '\\samples\\'
 result_path = os.getcwd() + '\\result\\'
 cfg_path = os.getcwd()
@@ -623,10 +631,10 @@ for idx in range(1, len(sys.argv)):
     if sys.argv[idx] == '-o' and idx < len(sys.argv):
         # enable output file
         enable_outfile = 1
-    
+
     if sys.argv[idx] == '-m' and idx < len(sys.argv):
-        #enable gui mode
-        mode_str = sys.argv[idx+1]      #mode = gui/auto/shock
+        # enable gui mode
+        mode_str = sys.argv[idx+1]  # mode = gui/auto/shock
 
     if sys.argv[idx] == '-g':
         # enable gui mode
@@ -644,18 +652,18 @@ for idx in range(1, len(sys.argv)):
         # enable verbose mode
         box_str = sys.argv[idx+1]
         box_coordinate = box_str.split(',')
-        for idx in range(0,int(len(box_coordinate)/4)):
-            select_boxes.append(SelectBox([int(box_coordinate[idx+0]),int(box_coordinate[idx+1]),int(box_coordinate[idx+2]),int(box_coordinate[idx+3])]))
-        SelectBox.mode = 1      #external args mode
+        for idx in range(0, int(len(box_coordinate)/4)):
+            select_boxes.append(SelectBox([int(box_coordinate[idx+0]), int(
+                box_coordinate[idx+1]), int(box_coordinate[idx+2]), int(box_coordinate[idx+3])]))
+        SelectBox.mode = 1  # external args mode
 
 if verbose_mode == 1:
     print(param_file)
 
 
-
 valid_length = 100000000
 
-#save point-cloud data to csv file
+# save point-cloud data to csv file
 
 # if enable_outfile == 1:
 #     ds_result_file_path = result_path + 'ds_result_' + str(time_tag) + '.csv'
@@ -682,7 +690,7 @@ if mode_str == 'shock':
             start_tag = int(tag)
 
     end_tag = 0
-    for tag in last_tags:   
+    for tag in last_tags:
         if end_tag == 0:
             end_tag = int(tag)
         elif int(tag) < end_tag:
@@ -696,24 +704,27 @@ if mode_str == 'shock':
 
     ds_item = []
 
-    for sample_idx in range(0,sample_numbers):
-        #calculate sample data
-        PointCloud_xy = []  #clear point cloud data
-        cord_calc.calc_shift(sample_idx*time_step)       #calculate new
-        #calculate section intercept distance
-        result_item=[]
+    for sample_idx in range(0, sample_numbers):
+        # calculate sample data
+        PointCloud_xy = []  # clear point cloud data
+        cord_calc.calc_shift(sample_idx*time_step)  # calculate new
+        # calculate section intercept distance
+        result_item = []
         for box in select_boxes:
-            S_intercept = calculate_intercept(PointCloud_xy,[[box.x1,box.y1],[box.x2,box.y2]])
-            result_str = "Timeshift = " + str(sample_idx*time_step) + "  SelectBOX" + str(box.index) + "--Intercept = " + str(S_intercept)
+            S_intercept = calculate_intercept(
+                PointCloud_xy, [[box.x1, box.y1], [box.x2, box.y2]])
+            result_str = "Timeshift = " + str(sample_idx*time_step) + "  SelectBOX" + str(
+                box.index) + "--Intercept = " + str(S_intercept)
             print(result_str)
-            result_item.append("%.3f"%(S_intercept))
-            
-        ds_item.append([str(sample_idx*time_step),result_item[0],result_item[1]])
+            result_item.append("%.3f" % (S_intercept))
+
+        ds_item.append([str(sample_idx*time_step),
+                        result_item[0], result_item[1]])
 
     ds_result_file_path = result_path + 'ds_result.csv'
-    ds_file = open(ds_result_file_path,'w',encoding='utf-8',newline='')
+    ds_file = open(ds_result_file_path, 'w', encoding='utf-8', newline='')
     ds_writer = csv.writer(ds_file)
-    ds_writer.writerow(['time_shift','intercept-box0','intercept-box1'])
+    ds_writer.writerow(['time_shift', 'intercept-box0', 'intercept-box1'])
     ds_writer.writerows(ds_item)
     ds_file.close()
 
@@ -732,7 +743,7 @@ elif mode_str == 'gui':
     plt.ylim(-5000, 5000)
     plt.gca().set_aspect('equal', adjustable='box')
     plt.plot(0, 0, "ob", ms=2, lw=2, color='green')
-    #add lines for camera axis
+    # add lines for camera axis
     CAMParams = ReadCfg(param_file)
     for idx in range(0, CAMParams.__len__()):
         axis_angle = float(CAMParams[idx].Degree) * 3.1415926 / 180.0
@@ -740,7 +751,8 @@ elif mode_str == 'gui':
         axis_pt_y = math.sin(axis_angle) * 5000
         label_str = 'CAM' + str(idx+1)
         #plt.plot([0,0], [axis_pt_x, axis_pt_y],'b-.',label=label_str,lw=0.5, alpha=0.5)
-        plt.plot([0,axis_pt_x], [0, axis_pt_y],label=label_str, lw=0.5, alpha=0.5, color='black')
+        plt.plot([0, axis_pt_x], [0, axis_pt_y], label=label_str,
+                 lw=0.5, alpha=0.5, color='black')
 
     plt.plot(pc_x, pc_y, "ob", ms=0.1, lw=0.1)
     time_str = "  Timestamp = " + str(time_shift)
@@ -751,7 +763,7 @@ elif mode_str == 'gui':
         option_str = "  Data Persist = ON"
 
     title_info_str = time_str + option_str
-    plt.title(title_info_str)   
+    plt.title(title_info_str)
 
     for box in select_boxes:
         plt.plot([box.xl, box.yh], [box.xh, box.yh],
@@ -778,15 +790,15 @@ elif mode_str == 'gui_samples':
     subdirs = getSubdirs(rawdata_path)
 
     for subdir in subdirs:
-        #PointCloud_xy = []
-        pcloud = CalcSampleCoordinates(param_file, subdir)
-        
+
+        PointCloud_xy = CalcSampleCoordinates(param_file, subdir)
+
         pc_x = []
         pc_y = []
-        for pt in pcloud:
-            pc_x.append(pt[0])
-            pc_y.append(pt[1])
-        
+        for pt in PointCloud_xy:
+            pc_x.append(float(pt[0]))
+            pc_y.append(float(pt[1]))
+
         fig = plt.figure(figsize=(10, 10.5))
         mngr = plt.get_current_fig_manager()
         mngr.window.wm_geometry("+100+100")
@@ -794,8 +806,8 @@ elif mode_str == 'gui_samples':
         plt.ylim(-5000, 5000)
 
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.plot(0, 0, "ob", ms=2, lw=2, color='green') 
-        #add lines for camera axis
+        plt.plot(0, 0, "ob", ms=2, lw=2, color='green')
+        # add lines for camera axis
         CAMParams = ReadCfg(param_file)
         for idx in range(0, CAMParams.__len__()):
             axis_angle = float(CAMParams[idx].Degree) * 3.1415926 / 180.0
@@ -803,15 +815,15 @@ elif mode_str == 'gui_samples':
             axis_pt_y = math.sin(axis_angle) * 5000
             label_str = 'CAM' + str(idx+1)
             #plt.plot([0,0], [axis_pt_x, axis_pt_y],'b-.',label=label_str,lw=0.5, alpha=0.5)
-            plt.plot([0,axis_pt_x], [0, axis_pt_y],label=label_str, lw=0.5, alpha=0.5, color='black')
+            plt.plot([0, axis_pt_x], [0, axis_pt_y], label=label_str,
+                     lw=0.5, alpha=0.5, color='black')
 
         dots = plt.plot(pc_x, pc_y, "ob", ms=0.1, lw=0.1)
-        dir_names=subdir.split('\\')
+        dir_names = subdir.split('\\')
 
-        time_str = "  Timestamp = " + dir_names[len(dir_names)-1]
+        title_str = "  Timestamp = " + dir_names[len(dir_names)-1]
 
-        title_info_str = time_str 
-        plt.title(title_info_str)   
+        plt.title(title_str)
 
         fig.canvas.mpl_connect('button_press_event', on_press)
         fig.canvas.mpl_connect('button_release_event', on_release)
@@ -820,5 +832,5 @@ elif mode_str == 'gui_samples':
         #fig.canvas.mpl_connect('scroll_event', scroll_zoom)
 
         plt.show()
-       
+
         print("wait for quit")
