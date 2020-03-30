@@ -91,11 +91,47 @@ class AnalyzingThread (Thread):
 
     def get_result(self):
         try:
-            return [self.tag_result]
+            return self.tag_result
         except Exception:
             return None 
 
+def GetSamples(raw_file, sample_dir,tags,sample_len,search_range):
+    print('Spliting ' + raw_file + '...')
+    ws=csv.reader(open(raw_file,'r'))
+    rows = list(ws)
+    tag_list = tags.copy()
+    path,name=os.path.split(raw_file)
+    valid_cnt = 0
 
+    for idx in range(0,len(rows)):
+        timestamp = int(rows[idx][1])
+        if len(tag_list) > 0 and timestamp >= tag_list[0]:
+            if (timestamp - tag_list[0]) < search_range:
+                print('current tag = ' + str(tag_list[0]))
+                file_to_write = open(sample_dir + '\\' + str(tag_list[0]) + '\\' + name ,'a',encoding='utf8',newline='')   
+                writer = csv.writer(file_to_write)
+
+                if (len(rows) - idx) > sample_len:
+                    valid_len =  sample_len
+                else:
+                    valid_len = len(rows) - idx
+
+                for inc in range(0,valid_len):
+                    writer.writerow(rows[idx+inc])
+                file_to_write.close()
+                valid_cnt += 1
+                if len(tag_list) > 0:
+                    tag_list.pop(0)
+
+            else:
+                if len(tag_list) > 0:
+                    print('missing sample data at:' + str(tag_list[0]))
+                    tag_list.pop(0)  
+
+        elif len(tag_list) == 0:
+            print('tag_list is empty')
+
+    print('total valid samples = ' + str(valid_cnt))
 
 class SampleThread (Thread):   
     
@@ -133,11 +169,6 @@ class SampleThread (Thread):
                     self.tag_list.pop(0)
         print('split complete')
             
-    def get_result(self):
-        try:
-            return [self.tag_result]
-        except Exception:
-            return None 
 
 
 
@@ -145,6 +176,7 @@ class SampleThread (Thread):
 #path = os.getcwd()
 path = os.getcwd() + '\\raw_data'
 raw_files = getFiles(path,'.csv')
+tag_files = getFiles(path,'tags.csv')
 time_tags = []
 AnalyzingThreads = []
 mode = ''
@@ -180,25 +212,39 @@ for dir in prev_dirs:
     if os.path.exists(dir):
         os.rmdir(dir)
 
-#search for valid time tag range
-for idx in range(0,len(raw_files)):
-    thread_name = 'AnalyzingThread' + str(idx)
-    # print(thread_name)
-    AnalyzingThreads.append(AnalyzingThread(idx,thread_name,raw_files[idx],os.getcwd() + '\\samples\\'))
-    AnalyzingThreads[idx].start()
+if len(tag_files) > 0:
+    ws = csv.reader(open(path + '\\tags.csv','r'))
+    rows = list(ws)
+    for idx in range(0,len(rows)):
+        begin = int(rows[idx][0])
+        end = int(rows[idx][1])
 
-for th in AnalyzingThreads:
-    th.join()
-    time_tags.append(th.get_result())
+        time_tags.append([begin,end])
+else:
+    #search for valid time tag range
+    for idx in range(0,len(raw_files)):
+        thread_name = 'AnalyzingThread' + str(idx)
+        # print(thread_name)
+        AnalyzingThreads.append(AnalyzingThread(idx,thread_name,raw_files[idx],os.getcwd() + '\\samples\\'))
+        AnalyzingThreads[idx].start()
+
+    for th in AnalyzingThreads:
+        th.join()
+        time_tags.append(th.get_result())
+    tag_list_to_write = open(path + '\\tags.csv','a',encoding='utf8',newline='')
+    writer = csv.writer(tag_list_to_write)
+    for cam_tags in time_tags:
+        writer.writerow(cam_tags)
+    tag_list_to_write.close()
 
 valid_start_tag = 0
 valid_end_tag = 1000000000
 for tag in time_tags:
-    if valid_start_tag < tag[0][0]:
-        valid_start_tag = tag[0][0]
+    if valid_start_tag < tag[0]:
+        valid_start_tag = tag[0]
 
-    if valid_end_tag > tag[0][1]:
-        valid_end_tag = tag[0][1]
+    if valid_end_tag > tag[1]:
+        valid_end_tag = tag[1]
 
 print('valid_start='+str(valid_start_tag)+'  '+ 'valid_end='+str(valid_end_tag) + '  ' + 'valid_length=' + str(valid_end_tag-valid_start_tag))
 
@@ -218,19 +264,17 @@ elif mode == 'sample_mode':
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
-    # thread_name = 'SplitThread' + str(0)
-    # th = SampleThread(idx,thread_name,raw_files[0],os.getcwd() + '\\samples\\',tag_list,length)
-    # th.start()
-    # th.join()
-    SampleThreads = []
+    for f in raw_files:
+        GetSamples(f,os.getcwd() + '\\samples\\',tag_list,length,100)
+    # SampleThreads = []
 
-    for idx in range(0,len(raw_files)):
-        thread_name = 'SplitThread' + str(idx)
-        SampleThreads.append(SampleThread(idx,thread_name,raw_files[idx],os.getcwd() + '\\samples\\',tag_list,length,100))
-        SampleThreads[idx].start()
+    # for idx in range(0,len(raw_files)):
+    #     thread_name = 'SplitThread' + str(idx)
+    #     SampleThreads.append(SampleThread(idx,thread_name,raw_files[idx],os.getcwd() + '\\samples\\',tag_list,length,100))
+    #     SampleThreads[idx].start()
         
-    for th in SampleThreads:
-        th.join()
+    # for th in SampleThreads:
+    #     th.join()
         
 
 print('finished')

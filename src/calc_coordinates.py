@@ -503,6 +503,36 @@ class CalculateThread (Thread):
 
 #PointCloud_xy = GetCoordinates(param_files,rawdata_path,DataIndex)
 
+def CalcSampleCoordinates(param_file,subdir):
+    pcloud = []
+    start_tags = []
+    end_tags = []
+    tag_start = 0
+    tag_end = 10000000000
+    sample_files = getFiles(subdir, '.csv')
+    for sample_file in sample_files:
+        ws = csv.reader(open(sample_file, 'r'))
+        row = list(ws)
+        lines = len(row)
+        if lines > 0:
+            start_tags.append(int(row[0][1]))
+            end_tags.append(int(row[lines-1][1]))
+
+    for tag in start_tags:
+        if tag > tag_start:
+            tag_start = tag
+
+    for tag in end_tags:
+        if tag < tag_end:
+            tag_end = tag    
+
+    #TODO: search for nearby samples for sufficient data
+    #sample_tag = tag_start
+
+    for sample_file in sample_files: 
+        pcloud.extend(TransformCoordinates(param_file, sample_file, tag_start))
+
+    return pcloud
 
 class CoordinatesCalculator:
     
@@ -749,16 +779,17 @@ elif mode_str == 'gui_samples':
 
     for subdir in subdirs:
         #PointCloud_xy = []
-        cord_calc = CoordinatesCalculator(param_file, subdir)
-        cord_calc.calc_shift(0)
+        pcloud = CalcSampleCoordinates(param_file, subdir)
+        
         pc_x = []
         pc_y = []
-        for pt in PointCloud_xy:
+        for pt in pcloud:
             pc_x.append(pt[0])
             pc_y.append(pt[1])
         
         fig = plt.figure(figsize=(10, 10.5))
-        
+        mngr = plt.get_current_fig_manager()
+        mngr.window.wm_geometry("+100+100")
         plt.xlim(-5000, 5000)
         plt.ylim(-5000, 5000)
 
