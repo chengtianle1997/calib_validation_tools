@@ -21,6 +21,32 @@ title_info_str = ''
 title_str = ''
 
 
+def ClusterFilterXY(pcloud_in, idx_range, radius, threshold):
+    pcloud_out = []
+
+    for idx, pt in enumerate(pcloud_in):
+        if idx < idx_range:
+            pass
+        if len(pcloud_in) - idx < idx_range:
+            pass
+        else:
+            nearby_pts = pcloud_in[idx - idx_range: idx + idx_range]
+            cnt_inrange = 0
+            for npt in nearby_pts:
+                x_pt = float(pt[0])
+                y_pt = float(pt[1])
+                x_npt = float(npt[0])
+                y_npt = float(npt[1])
+                distance = math.sqrt((x_pt-x_npt)**2 + (y_pt - y_npt)**2)
+                if distance < radius:
+                    cnt_inrange += 1
+
+            if cnt_inrange > threshold:
+                pcloud_out.append(pt)
+
+    return pcloud_out
+
+
 def calculate_intercept(pc_xy, box):
     pts_x = []
     pts_y = []
@@ -378,9 +404,7 @@ def TransformCoordinates(param_file, rawdata_file, time_tag):
     CAMParams = ReadCfg(param_file)
 
     cam_idx = 0
-    #time_tags = []
-    #BasicDegreeWorld = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
-    #BasicDegree = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+
     BasicDegreeWorld = Decimal('0.0')
     BasicDegree = Decimal('0.0')
 
@@ -792,6 +816,8 @@ elif mode_str == 'gui_samples':
     for subdir in subdirs:
 
         PointCloud_xy = CalcSampleCoordinates(param_file, subdir)
+
+        PointCloud_xy = ClusterFilterXY(PointCloud_xy, 50, 50, 50)
 
         pc_x = []
         pc_y = []

@@ -1,8 +1,2 @@
-raw_data/Result2.csv
-raw_data/Result3.csv
-raw_data/Result4.csv
-raw_data/Result5.csv
-raw_data/Result6.csv
-raw_data/Result7.csv
-raw_data/Result8.csv
-raw_data/Result9.csv
+*.csv
+

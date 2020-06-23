@@ -1,31 +1,21 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: GUI mode",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": [
-                "-m",
-                "gui_samples"
-            ]
-        },
-        {
-            "name": "Python: Sample Mode",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": [
-                "-m",
-                "sample_mode",
-                "-l",
-                "10",
-                "-i",
-                "1000"
-            ]
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: GUI mode",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": ["-m", "gui_samples"]
+    },
+    {
+      "name": "Python: Sample Mode",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": ["-m", "sample_mode", "-l", "10", "-i", "1000"]
+    }
+  ]
 }
