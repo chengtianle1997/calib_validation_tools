@@ -1,1 +1,1 @@
-python .\src\convert_raw.py -l
+python .\src\convert_raw.py -l --srcdir=raw_data --dstdir=samples

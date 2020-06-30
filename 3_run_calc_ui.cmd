@@ -1,1 +1,0 @@
-python .\src\calc_coordinates.py -m gui_samples

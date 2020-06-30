@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 
 def calculate_intercept(pc_xy, box):
     pts_x = []
@@ -31,23 +31,17 @@ def calculate_intercept(pc_xy, box):
         x_array = np.array(pts_x)
         y_array = np.array(pts_y)
         coef = np.polyfit(x_array, y_array, 1)
-        poly_fit = np.poly1d(coef)
+        
 
         k = coef[0]
         t = coef[1]
-        global verbose_mode
-        if verbose_mode == 1:
-            print('k='+str(k))
-            print('d='+str(t))
-
-        x = [-5000, 5000]
-        global fitline
-        fitline.append(plt.gca().plot(x, poly_fit(
-            x), lw=0.5, alpha=0.5, color='green'))
-        plt.gca().figure.canvas.draw()
+#        global verbose_mode
+#       if verbose_mode == 1:
+        print('k='+str(k))
+        print('d='+str(t))
 
         # print(poly_fit)
         distance = abs(-t/math.sqrt(k*k+1))
     #print('distance = ' + str(distance))
-    return distance
+    return [distance,coef]
 

@@ -2,6 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: pc_analyzer",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": [
+        "--mode=fitline",
+        "--srcdir=samples",
+        "-f"
+      ]
+    },
+    {
       "name": "Python: convert_raw",
       "type": "python",
       "request": "launch",
