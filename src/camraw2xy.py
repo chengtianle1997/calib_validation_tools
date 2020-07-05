@@ -227,11 +227,11 @@ def convert(param_file, rawdata_file, time_tag):
          
         # correct static error using global distance correction
         if CAMParams[cam_idx].bUsingGlocalDistCor:
-            # world_S = Num/Den + Decimal(CAMParams[cam_idx].GDcor)
-            world_S = (Num/Den)/(Dcork+1) + Dcorb + Decimal(CAMParams[cam_idx].GDcor)
+            world_S = (Num/Den) + Decimal(CAMParams[cam_idx].GDcor)
+
         else:
-            # world_S = Num/Den + CAMParams[cam_idx].Dcor
-            world_S = (Num/Den)/(Dcork+1) + Dcorb + Decimal(CAMParams[cam_idx].GDcor)
+            origin_S = Num/Den
+            world_S = origin_S + (origin_S * Dcork + Dcorb)
 
         if world_S > 2000 and world_S < 5000:
             world_ds.append([world_degree, world_S])
@@ -249,7 +249,7 @@ def convert(param_file, rawdata_file, time_tag):
     return world_xy
 
 
-# def ConvertMultiSections(param_file, rawdata_file, time_tags):
+def ConvertMultiSections(param_file, rawdata_file, time_tags):
     # load camera params
     CAMParams = ReadCfg(param_file)
 
@@ -342,11 +342,11 @@ def convert(param_file, rawdata_file, time_tag):
                 
                 # correct static error using global distance correction
                 if CAMParams[cam_idx].bUsingGlocalDistCor:
-                    # world_S = Num/Den + Decimal(CAMParams[cam_idx].GDcor)
-                    world_S = (Num/Den)/(Dcork+1) + Dcorb + Decimal(CAMParams[cam_idx].GDcor)
+                    world_S = (Num/Den) + Decimal(CAMParams[cam_idx].GDcor)
+
                 else:
-                    # world_S = Num/Den + CAMParams[cam_idx].Dcor
-                    world_S = (Num/Den)/(Dcork+1) + Dcorb + Decimal(CAMParams[cam_idx].GDcor)
+                    origin_S = Num/Den
+                    world_S = origin_S + (origin_S * Dcork + Dcorb)
 
                 if world_S > 2000 and world_S < 5000:
                     # world_ds.append([world_radian, world_S])
@@ -420,7 +420,8 @@ def ConvertOneSection(CAMParams,cam_idx,rawdata_row):
             world_S = Num/Den + Decimal(CAMParams[cam_idx].GDcor)
         else:
             #world_S = Num/Den + CAMParams[cam_idx].Dcor
-            world_S = (Num/Den)/(Dcork+1) + Dcorb + Decimal(CAMParams[cam_idx].GDcor)
+            origin_S = Num/Den
+            world_S = origin_S + (origin_S * Dcork +Dcorb )
 
         if world_S > 2000 and world_S < 5000:
             # world_ds.append([world_radian, world_S])

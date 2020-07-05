@@ -21,6 +21,7 @@
       "console": "integratedTerminal",
       "args": [
         "-l",
+        "-m",
         "--srcdir=raw_data",
         "--dstdir=samples"
       ]

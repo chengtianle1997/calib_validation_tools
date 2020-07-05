@@ -16,7 +16,7 @@ def main(argv):
     
     bUsingListFile = False
     bUsingIndexFile = False
-
+    en_multi_thread_mode = False
     indexfilename = []
 
     bExtractAllValidData = False
@@ -29,7 +29,7 @@ def main(argv):
         convert_raw.py -h -l <list_file> -i <index_file> -t <time_tag> 
     '''
     try:
-        opts, args = getopt.getopt(argv,"halit:",["help","all","list=","index=","timetag=","srcdir=","dstdir="])
+        opts, args = getopt.getopt(argv,"hamlit:",["help","multithread","all","list=","index=","timetag=","srcdir=","dstdir="])
     except getopt.GetoptError:
         print(help_str)
         sys.exit(2)
@@ -68,6 +68,9 @@ def main(argv):
         elif opt in ("--srcdir"):
             raw_subdir = arg
 
+        elif opt in ("-m","--multithread"):
+            en_multi_thread_mode = True
+            
         elif opt in ("--dstdir"):
             dst_dir = arg
 
@@ -135,7 +138,7 @@ def main(argv):
                         if idx !=0 and int(idx_row[0]) in ref_tag_list and idx_row[1] == '1':
                             sec_list.append(int(idx_row[cam_idx+1]))
 
-                    if len(idx_records) > 32:
+                    if len(idx_records) > 32 and en_multi_thread_mode:
                         pointcloud_xys=(camraw2xy.ConvertMultiSectionsMultiThreading(cfg_file,raw,sec_list))
                     else:
                         pointcloud_xys=(camraw2xy.ConvertMultiSections(cfg_file,raw,sec_list))
