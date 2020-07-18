@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 import camraw2xy
 import pcfilter
 import linefit
+import weight_center
+
 # import cv2 as cv
 # import ellipsefitting as elfit
 from matplotlib.patches import Ellipse
@@ -22,6 +24,7 @@ title_str = ''
 function_mode = ''
 filename = ''
 filter_thresholds = [0.05,0.2]
+select_enable = True
 
 class SelectBox:
     box_count = 0
@@ -100,7 +103,8 @@ def on_mouse_motion(event):
 
 def on_press(event):
     global select_boxes
-    if event.button==1:   #鼠标左键点击
+    global select_enable
+    if event.button==1 and select_enable:   #鼠标左键点击
         #if select_boxes.__len__() == 0:
         select_boxes.append(SelectBox([event.xdata,event.ydata]))
         print("add box start position:" ,event.button,event.xdata, event.ydata)
@@ -119,8 +123,10 @@ def on_release(event):
     # global select_pts
     # global highlight_pts
     global function_mode
+    global select_enable
+    global fitline
 
-    if event.button == 1:  # 鼠标左键释放
+    if event.button == 1 and select_enable:  # 鼠标左键释放
         if function_mode == 'fitline':
             if select_boxes[SelectBox.box_count-1].finished == 0:
                 select_boxes[SelectBox.box_count-1].x2 = event.xdata
@@ -136,13 +142,35 @@ def on_release(event):
 
                     poly_fit = np.poly1d(poly_coef)
                     x = [-5000, 5000]
-                    global fitline
+                    
                     fitline.append(plt.gca().plot(x, poly_fit(
                         x), lw=0.5, alpha=0.5, color='green'))
                     plt.gca().figure.canvas.draw()
 
                     result_string = filename + "  Intercept = {:.3f}".format(S_intercept)
                     plt.title(result_string)
+                    plt.gca().figure.canvas.draw()
+                    if SelectBox.box_count > 0:
+                        select_boxes.pop()
+                        # print('select_box_count='+str(SelectBox.box_count))
+                    print(result_string)
+
+        elif function_mode == 'weight_center':
+            if select_boxes[SelectBox.box_count-1].finished == 0:
+                select_boxes[SelectBox.box_count-1].x2 = event.xdata
+                select_boxes[SelectBox.box_count-1].y2 = event.ydata
+                select_boxes[SelectBox.box_count-1].finished = 1
+                #print("add box end position:", event.button,
+                #    event.xdata, event.ydata)
+
+                # processing data
+                for box in select_boxes:
+
+                    [rho_avg,theta_avg] = weight_center.calculate_inbox(pc_filtered, [[box.x1, box.y1], [box.x2, box.y2]])
+                    result_string = filename + " polar coordinates of weight = {:.2f},{:.5f}".format(rho_avg,theta_avg)
+                    plt.title(result_string)
+                    pt_wc = pcfilter.ConvertPolar2XY([[rho_avg,theta_avg]],[0,0])
+                    plt.scatter(pt_wc[0][0], pt_wc[0][1], c="r", marker='.', s=2) 
                     plt.gca().figure.canvas.draw()
                     if SelectBox.box_count > 0:
                         select_boxes.pop()
@@ -190,11 +218,13 @@ def on_keypressed(event):
     global highlight_pts
     global filename
     global bShowBox
-
+    #global axis_pt_x
+    #global axis_pt_y
     global tims_str
+    global select_enable
     boxes = []
 
-    if event.key in " cxrs":
+    if event.key in " cxrb":
         if event.key == ' ':    #do ellipse fitting
             # processing data
             # add pts inside select_box to select_pts list
@@ -224,7 +254,8 @@ def on_keypressed(event):
 
             if function_mode == 'fitline':
                 pass
-
+            elif function_mode == 'range':
+                pass
             elif function_mode == 'fitellipse':
                 # start first ellipse fitting
                 [Xc,Yc,MA,SMA,Theta] = pcfilter.FittingEllipse(pcloud_xy_filtered)
@@ -291,20 +322,16 @@ def on_keypressed(event):
             for pt in highlight_pts:
                 pt.remove()
 
-        if event.key == 's':        #show select_boxes
-            if not bShowBox:
-                bShowBox = True
-                # show select box
-                for box in select_boxes:
-                    box_edge1, = plt.plot([0,axis_pt_x], [0, axis_pt_y], lw=0.5, alpha=0.4, color='red')
-                    boxes.append()
-                    select_pts.extend(SelectPts(pc_filtered, [[box.x1, box.y1], [box.x2, box.y2]]))
+        if event.key == 'b':        #show select_boxes
+            if select_enable:
+                select_enable = False
+                result_string = 'Select Box OFF'
+                
             else:
-                bShowBox = False
-                # hide select box
-
-
-            plt.gca().figure.canvas.draw()                     
+                select_enable = True
+                result_string = 'Select Box ON'
+            print(result_string)
+            plt.title(result_string)                  
 
 
 
@@ -343,14 +370,14 @@ def main(argv):
     global filename
     global select_pts
     global highlight_pts
-    silent_mode = False
+    # silent_mode = False
     # auto_mode = False
-    verbose_mode = False
+    # verbose_mode = False
     write_result = False
     apply_prefilter = False
     global function_mode
     function_mode = ''
-    mode_list = ['fitline','fitellipse','fitellipse_auto','nofit']
+    mode_list = ['fitline','fitellipse','fitellipse_auto','nofit','weight_center']
     srd_dir = ''
     global tims_str
     num_to_process = 1000000
@@ -377,11 +404,11 @@ def main(argv):
         # elif opt in ("-a", "--auto"):
         #     auto_mode = True
 
-        elif opt in ("-s", "--silent"):
-            silent_mode = True
+        # elif opt in ("-s", "--silent"):
+        #     silent_mode = True
 
-        elif opt in ("-v", "--verbose"):
-            verbose_mode = True
+        # elif opt in ("-v", "--verbose"):
+        #     verbose_mode = True
 
         elif opt in ("-f", "--filter"):
             apply_prefilter = True
@@ -480,7 +507,7 @@ def main(argv):
             plt.legend()
 
 
-            if function_mode == 'fitline' or function_mode == 'fitellipse':
+            if function_mode in ['fitline','fitellipse','weight_center']:
 
                 fig.canvas.mpl_connect('button_press_event', on_press)
                 fig.canvas.mpl_connect('button_release_event', on_release)

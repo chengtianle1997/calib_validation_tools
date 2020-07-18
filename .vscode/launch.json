@@ -2,7 +2,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: pc_analyzer",
+      "name": "Python: pc_analyzer--weight_center mode",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": [
+        "--mode=weight_center",
+        "--srcdir=samples",
+        "-f"        
+      ]
+    },
+    {
+      "name": "Python: pc_analyzer--fitline mode",
       "type": "python",
       "request": "launch",
       "program": "${file}",

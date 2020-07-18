@@ -1,0 +1,1 @@
+python .\src\pc-analyzer.py --mode=weight_center --srcdir=samples -f
