@@ -219,7 +219,7 @@ def convert(param_file, rawdata_file, time_tag):
         Fxcor = P00 + P10 * x + P01 * Cd + P20 * x * x + P11 * Cd * x + P02 * Cd * Cd
         tmp1 = Phi + Decimal(math.atan((Uo - x) / Fx))
         Scor = (Bmm * Decimal(math.tan(tmp1)) + M) / Fxcor
-        Num = Scor * Bmm + (Scor - M * BP1)
+        Num = Scor * Bmm + (Scor - M) * BP1
         Den = Bmm + (M - Scor)*(BP2 * Decimal(math.cos(alpha)) +
                                 BP3*Decimal(math.sin(alpha)))
         
@@ -336,7 +336,7 @@ def ConvertMultiSections(param_file, rawdata_file, time_tags):
                 Fxcor = P00 + P10 * x + P01 * Cd + P20 * x * x + P11 * Cd * x + P02 * Cd * Cd
                 tmp1 = Phi + Decimal(math.atan((Uo - x) / Fx))
                 Scor = (Bmm * Decimal(math.tan(tmp1)) + M) / Fxcor
-                Num = Scor * Bmm + (Scor - M * BP1)
+                Num = Scor * Bmm + (Scor - M) * BP1
                 Den = Bmm + (M - Scor)*(BP2 * Decimal(math.cos(alpha)) +
                                         BP3*Decimal(math.sin(alpha)))
                 
@@ -411,7 +411,7 @@ def ConvertOneSection(CAMParams,cam_idx,rawdata_row):
         Fxcor = P00 + P10 * x + P01 * Cd + P20 * x * x + P11 * Cd * x + P02 * Cd * Cd
         tmp1 = Phi + Decimal(math.atan((Uo - x) / Fx))
         Scor = (Bmm * Decimal(math.tan(tmp1)) + M) / Fxcor
-        Num = Scor * Bmm + (Scor - M * BP1)
+        Num = Scor * Bmm + (Scor - M) * BP1
         Den = Bmm + (M - Scor)*(BP2 * Decimal(math.cos(alpha)) +
                                 BP3*Decimal(math.sin(alpha)))
         

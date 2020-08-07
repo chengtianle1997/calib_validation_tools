@@ -5,7 +5,7 @@ import csv
 import re
 import threading
 
-MAX_TIME_DIVETION = 5
+MAX_TIME_DIVETION = 30
 result_dir = ""
 
 def getFiles(path, suffix):
