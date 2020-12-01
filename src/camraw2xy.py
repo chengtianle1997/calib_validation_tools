@@ -11,6 +11,12 @@ from multiprocessing import cpu_count
 
 pi = Decimal(3.1415926536)
 
+# csv with x,y format
+# format_step = 2
+# csv with x,br format
+format_step = 3
+bright_min = 100
+
 class CameraParams:
     camera_count = 0
     BP1 = 0.0
@@ -19,7 +25,10 @@ class CameraParams:
     GDcor = Decimal('0.0')
     GRcor = Decimal('0.0')
     GHYcor = Decimal('0.0')
+    A = Decimal('0.0')
+    T = Decimal('0.0')
     bUsingGlocalDistCor = True
+    bUsingSinCorr = True
 
     def __init__(self, name):
         self.name = name
@@ -109,6 +118,9 @@ def ReadCfg(filename):
     CameraParams.BP2 = cfg.get('ParamDetail', 'BP2')
     CameraParams.BP3 = cfg.get('ParamDetail', 'BP3')
 
+    CameraParams.A = cfg.get('ParamDetail', 'SincorrA')
+    CameraParams.T = cfg.get('ParamDetail', 'SincorrT')
+
     CameraParams.GRcor = cfg.get('ParamDetail', 'GlobalRotateCorr')
 
     CameraParams.GDcor = cfg.get('ParamDetail', 'GlobalDistCorr')
@@ -119,6 +131,10 @@ def ReadCfg(filename):
     else:
         CameraParams.bUsingGlocalDistCor = False
 
+    if cfg.get('ParamDetail', 'SinCorrUsing') == 'TRUE':
+        CameraParams.bUsingSinCorr = True
+    else:
+        CameraParams.bUsingSinCorr = False
 
     CameraParams.GHYcor = cfg.get('ParamDetail', 'GlobalHorizonYawCorr')
     return CAMParams
@@ -190,6 +206,10 @@ def convert(param_file, rawdata_file, time_tag):
 
     Dcorb = Decimal(CAMParams[cam_idx].Dcorb)
     Dcork = Decimal(CAMParams[cam_idx].Dcork)
+
+    A = Decimal(CAMParams[cam_idx].A)
+    T = Decimal(CAMParams[cam_idx].T)
+
     # search for time_tag
     index = 0
     for idx in range(0,len(row)-1):
@@ -199,11 +219,11 @@ def convert(param_file, rawdata_file, time_tag):
     #if verbose_mode == 1:
     #    print('time_tag = ' + str(time_tag))          
     #    print('current idx = ' + str(index))    
-
-    #read raw data from csv
+    
+    # read raw data from csv
     for col in range(2,row[0].__len__(),2):
         cam_x = row[index][col]         #get x cam-coordinate of a point
-        cam_y = str((col / 2)-1)    #get y cam-coordinate of a point
+        cam_y = str((col / 2)-1)    #get y cam-coordinate of a point       
         cam_coordinates.append([cam_x,cam_y])       #add to cam-coordinate list
 
         x = Decimal(cam_x)          #convert string to decimal
@@ -232,6 +252,15 @@ def convert(param_file, rawdata_file, time_tag):
         else:
             origin_S = Num/Den
             world_S = origin_S + (origin_S * Dcork + Dcorb)
+
+        # filter the distance with the brightness
+        if format_step == 3:
+            pixel_br = Decimal(row[index][col+1])
+            if pixel_br < bright_min:
+                world_S = 0
+        
+        if CAMParams[cam_idx].bUsingSinCorr:
+            world_S -= A * Decimal(math.sin(world_degree) * pi / Decimal(180) + T)
 
         if world_S > 2000 and world_S < 5000:
             world_ds.append([world_degree, world_S])
@@ -318,6 +347,7 @@ def ConvertMultiSections(param_file, rawdata_file, time_tags):
             #read raw data from csv
             point_cnt += 1
             print('.',end='')
+
             for col in range(2,len(row),2):
                 cam_x = row[col]         #get x cam-coordinate of a point
                 cam_y = str((col / 2)-1)    #get y cam-coordinate of a point
@@ -347,6 +377,12 @@ def ConvertMultiSections(param_file, rawdata_file, time_tags):
                 else:
                     origin_S = Num/Den
                     world_S = origin_S + (origin_S * Dcork + Dcorb)
+
+                # filter the points with brightness
+                if format_step == 3:
+                    pixel_br = Decimal(row[col + 1])
+                    if pixel_br < bright_min:
+                        world_S = 0
 
                 if world_S > 2000 and world_S < 5000:
                     # world_ds.append([world_radian, world_S])
@@ -391,7 +427,7 @@ def ConvertOneSection(CAMParams,cam_idx,rawdata_row):
     K02 = Decimal(CAMParams[cam_idx].K02)
     Dcorb = Decimal(CAMParams[cam_idx].Dcorb)
     Dcork = Decimal(CAMParams[cam_idx].Dcork)
-
+    
     
     for col in range(2,len(rawdata_row),2):
         cam_x = rawdata_row[col]         #get x cam-coordinate of a point
@@ -422,6 +458,12 @@ def ConvertOneSection(CAMParams,cam_idx,rawdata_row):
             #world_S = Num/Den + CAMParams[cam_idx].Dcor
             origin_S = Num/Den
             world_S = origin_S + (origin_S * Dcork +Dcorb )
+
+        # filter the points with brightness
+        if format_step == 3:
+            pixel_br = Decimal(rawdata_row[col + 1])
+            if pixel_br < bright_min:
+                world_S = 0
 
         if world_S > 2000 and world_S < 5000:
             # world_ds.append([world_radian, world_S])

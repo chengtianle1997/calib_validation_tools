@@ -41,4 +41,5 @@ def calculate_inbox(pc_xy, box):
         theta_avg = theta_sum/len(pt_polar)
   
     #print('distance = ' + str(distance))
+    print("The Average of {} points.".format(len(pt_polar)))
     return [rho_avg,theta_avg]

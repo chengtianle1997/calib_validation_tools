@@ -2,6 +2,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Python: index_gen-generate tag index",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": [
+        "-i",
+        "-v", "1000"
+      ]
+    },
+    {
       "name": "Python: pc_analyzer--weight_center mode",
       "type": "python",
       "request": "launch",
@@ -38,16 +49,7 @@
         "--dstdir=samples"
       ]
     },
-    {
-      "name": "Python: index_gen-generate tag index",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal",
-      "args": [
-        "-i"
-      ]
-    },
+    
     {
       "name": "Python: index_gen-generate list with sample interval=2000",
       "type": "python",

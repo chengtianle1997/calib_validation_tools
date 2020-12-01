@@ -25,6 +25,9 @@ function_mode = ''
 filename = ''
 filter_thresholds = [0.05,0.2]
 select_enable = True
+cboxes = [0, 0, 0, 0]
+
+
 
 class SelectBox:
     box_count = 0
@@ -126,6 +129,8 @@ def on_release(event):
     global select_enable
     global fitline
 
+    
+
     if event.button == 1 and select_enable:  # 鼠标左键释放
         if function_mode == 'fitline':
             if select_boxes[SelectBox.box_count-1].finished == 0:
@@ -137,6 +142,14 @@ def on_release(event):
 
                 # processing data
                 for box in select_boxes:
+                    if box.x1 == None:
+                        box.x1 = 0
+                    if box.y1 == None:
+                        box.y1 = 0
+                    if box.x2 == None:
+                        box.x2 = 0
+                    if box.y2 == None:
+                        box.y2 = 0
                     [S_intercept,poly_coef] = linefit.calculate_intercept(
                         pc_filtered, [[box.x1, box.y1], [box.x2, box.y2]])
 
@@ -165,13 +178,28 @@ def on_release(event):
 
                 # processing data
                 for box in select_boxes:
-
+                    if box.x1 == None:
+                        box.x1 = 0
+                    if box.y1 == None:
+                        box.y1 = 0
+                    if box.x2 == None:
+                        box.x2 = 0
+                    if box.y2 == None:
+                        box.y2 = 0
                     [rho_avg,theta_avg] = weight_center.calculate_inbox(pc_filtered, [[box.x1, box.y1], [box.x2, box.y2]])
-                    result_string = filename + " polar coordinates of weight = {:.2f},{:.5f}".format(rho_avg,theta_avg)
+                    result_string = filename + " polar coordinates of weight = {:.2f},{:.5f}\n".format(rho_avg,theta_avg)
                     plt.title(result_string)
                     pt_wc = pcfilter.ConvertPolar2XY([[rho_avg,theta_avg]],[0,0])
                     plt.scatter(pt_wc[0][0], pt_wc[0][1], c="r", marker='.', s=2) 
                     plt.gca().figure.canvas.draw()
+                    cboxes[0] = box.x1
+                    cboxes[1] = box.y1
+                    cboxes[2] = box.x2
+                    cboxes[3] = box.y2
+                    # cboxes.append(box.x1)
+                    # cboxes.append(box.y1)
+                    # cboxes.append(box.x2)
+                    # cboxes.append(box.y2)
                     if SelectBox.box_count > 0:
                         select_boxes.pop()
                         # print('select_box_count='+str(SelectBox.box_count))
@@ -359,7 +387,7 @@ def SelectPts(pc_xy, box):
 
     return pts_selected
 
-
+import time
 
 # main entrance of this program
 
@@ -435,8 +463,16 @@ def main(argv):
         head = ['TIMG_TAG','LONG_AXIS','SHORT_AXIS','CENTER_X','CENTER_Y','THETA']
         writer.writerow(head)
         file_to_write.close()
+    
+    # write result for multi-frame calc_rho
+    rho_result_file_name = "calc_rho_result.csv"
+    rho_result_file = open(rho_result_file_name, 'a', encoding='utf-8', newline='')
+    rho_result_writer = csv.writer(rho_result_file)
+    rho_csv_row = []
+    rho_csv_row.append(time.strftime("%Y/%m/%d-%H:%M:%S"))
 
     process_cnt = 0
+    isFirst = True
     for pcf in pcloud_files:
         if not 'intermidiate' in pcf and not 'result' in pcf:
             if process_cnt >= num_to_process:
@@ -444,6 +480,8 @@ def main(argv):
             process_cnt += 1
 
             print('processing ' + pcf)
+            
+
             select_pts = []
             highlight_pts = []
             bShowBox = False
@@ -481,8 +519,8 @@ def main(argv):
                 plt.xlim(-4000, 4000)
                 plt.ylim(-4000, 4000)
             else:
-                plt.xlim(-3000, 3000)
-                plt.ylim(-3000, 3000)
+                plt.xlim(-4000, 4000)
+                plt.ylim(-4000, 4000)
 
             plt.gca().set_aspect('equal', adjustable='box')
 
@@ -507,8 +545,8 @@ def main(argv):
             plt.legend()
 
 
-            if function_mode in ['fitline','fitellipse','weight_center']:
-
+            if function_mode in ['fitline','fitellipse']:
+                
                 fig.canvas.mpl_connect('button_press_event', on_press)
                 fig.canvas.mpl_connect('button_release_event', on_release)
                 fig.canvas.mpl_connect('motion_notify_event', on_mouse_motion)
@@ -516,6 +554,26 @@ def main(argv):
 
                 plt.ioff()
                 plt.show()
+
+
+            elif function_mode == 'weight_center':
+                
+                if isFirst:
+                    fig.canvas.mpl_connect('button_press_event', on_press)
+                    fig.canvas.mpl_connect('button_release_event', on_release)
+                    fig.canvas.mpl_connect('motion_notify_event', on_mouse_motion)
+                    fig.canvas.mpl_connect('key_press_event', on_keypressed)
+
+                    plt.ioff()
+                    plt.show()
+                    isFirst = False
+                else:
+                    [rho_avg,theta_avg] = weight_center.calculate_inbox(pc_filtered, [[cboxes[0], cboxes[1]], [cboxes[2], cboxes[3]]])
+                    result_string = filename + " polar coordinates of weight = {:.2f},{:.5f}\n".format(rho_avg,theta_avg)
+                    print(result_string)
+                    rho_csv_row.append(rho_avg)
+                    plt.close()
+
 
             elif function_mode == 'fitellipse_auto':
                 # auto mode
@@ -598,8 +656,10 @@ def main(argv):
             else:
                 print('select funtion mode in [\'fitline\',\'fitellipse\',\'fitellipse_auto\']')
 
-
+    rho_result_writer.writerow(rho_csv_row)
+    # rho_result_writer.writerow([])
     print("process complete!")
+    os.system("pause")
 
 
 # execute only if run as a script
